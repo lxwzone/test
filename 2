@@ -1,0 +1,64 @@
+#!/bin/bash
+
+# Configuration
+LOCAL_DIR="/path/to/local/files"           # Local directory containing the files
+REMOTE_USER="your_remote_user"             # Remote server username
+REMOTE_HOST="your.remote.server.com"       # Remote server hostname/IP
+LOG_FILE="/path/to/logfile.log"            # Log file to record actions
+
+# Define mappings for file types to remote directories
+declare -A REMOTE_DIRS
+REMOTE_DIRS=( 
+    ["*.txt"]="/path/to/remote/text_files"    # Text files to this folder
+    ["*.jpg"]="/path/to/remote/image_files"   # Image files to this folder
+    ["*.csv"]="/path/to/remote/csv_files"    # CSV files to this folder
+)
+
+# Check if a file is completely transferred (file not growing)
+is_file_complete() {
+    local file="$1"
+    local size1=$(stat --printf="%s" "$file")
+    sleep 1
+    local size2=$(stat --printf="%s" "$file")
+    [ "$size1" -eq "$size2" ]
+}
+
+# SFTP Function to transfer files
+transfer_files() {
+    for pattern in "${!REMOTE_DIRS[@]}"; do
+        remote_dir="${REMOTE_DIRS[$pattern]}"
+        
+        for file in "$LOCAL_DIR"/$pattern; do
+            # Ensure it matches the pattern and is a regular file
+            if [ -f "$file" ]; then
+                # Ensure the file is completely transferred
+                if is_file_complete "$file"; then
+                    filename=$(basename "$file")
+                    echo "Transferring $filename to $REMOTE_USER@$REMOTE_HOST:$remote_dir" | tee -a "$LOG_FILE"
+                    
+                    sftp "$REMOTE_USER@$REMOTE_HOST" <<EOF
+cd $remote_dir
+put $file
+bye
+EOF
+
+                    # Check if the transfer was successful
+                    if [ $? -eq 0 ]; then
+                        echo "Transfer successful: $filename" | tee -a "$LOG_FILE"
+                        rm -f "$file"  # Remove the file after successful transfer
+                    else
+                        echo "Transfer failed: $filename" | tee -a "$LOG_FILE"
+                    fi
+                else
+                    echo "File not ready for transfer: $(basename "$file")" | tee -a "$LOG_FILE"
+                fi
+            fi
+        done
+    done
+}
+
+# Periodic execution
+while true; do
+    transfer_files
+    sleep 300  # Wait for 5 minutes (adjust as needed)
+done

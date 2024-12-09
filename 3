@@ -1,0 +1,81 @@
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.http.*;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.client.RestTemplate;
+
+import javax.servlet.http.HttpServletRequest;
+import java.net.InetSocketAddress;
+import java.net.Proxy;
+import java.util.Enumeration;
+
+@SpringBootApplication
+public class HttpRequestForwarderApplication {
+
+    public static void main(String[] args) {
+        SpringApplication.run(HttpRequestForwarderApplication.class, args);
+    }
+}
+
+@RestController
+@RequestMapping("/proxy")
+class ProxyController {
+
+    private final RestTemplate restTemplate;
+
+    // Target server URL
+    private static final String TARGET_SERVER = "https://target.server.com";
+
+    // Constructor to configure RestTemplate with proxy
+    public ProxyController() {
+        this.restTemplate = createRestTemplateWithProxy();
+    }
+
+    @RequestMapping(value = "/**", method = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE})
+    public ResponseEntity<?> forwardRequest(
+            HttpServletRequest request,
+            @RequestBody(required = false) String body) {
+
+        try {
+            // Extract target URL from the incoming request
+            String path = request.getRequestURI().replaceFirst("/proxy", "");
+            String targetUrl = TARGET_SERVER + path;
+
+            // Forward headers
+            HttpHeaders headers = new HttpHeaders();
+            Enumeration<String> headerNames = request.getHeaderNames();
+            while (headerNames.hasMoreElements()) {
+                String headerName = headerNames.nextElement();
+                headers.add(headerName, request.getHeader(headerName));
+            }
+
+            // Create a request entity
+            HttpMethod method = HttpMethod.valueOf(request.getMethod());
+            HttpEntity<String> requestEntity = new HttpEntity<>(body, headers);
+
+            // Forward the request to the target server via proxy
+            ResponseEntity<String> response = restTemplate.exchange(
+                    targetUrl,
+                    method,
+                    requestEntity,
+                    String.class
+            );
+
+            // Return the response to the client
+            return new ResponseEntity<>(response.getBody(), response.getHeaders(), response.getStatusCode());
+        } catch (Exception e) {
+            // Handle exceptions
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error: " + e.getMessage());
+        }
+    }
+
+    private RestTemplate createRestTemplateWithProxy() {
+        // Set up proxy
+        Proxy proxy = new Proxy(Proxy.Type.HTTP, new InetSocketAddress("proxy.server.com", 8080));
+        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
+        requestFactory.setProxy(proxy);
+
+        // Create RestTemplate with proxy settings
+        return new RestTemplate(requestFactory);
+    }
+}

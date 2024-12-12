@@ -1,0 +1,31 @@
+#!/bin/bash
+
+# Define the base directory to search
+base_dir="/path/to/search"
+
+# Define the report file
+report_file="replacement_report.txt"
+
+# Initialize the report
+echo "Replacement Report" > "$report_file"
+echo "==================" >> "$report_file"
+
+# Find all "active" and "conf" directories
+find "$base_dir" -type d \( -name "active" -o -name "conf" \) | while read dir; do
+    echo "Processing directory: $dir" >> "$report_file"
+
+    # Find all files containing "aaa" or "bbb" in the directory
+    grep -l -r -E "aaa|bbb" "$dir" | while read file; do
+        # Backup the original file
+        cp "$file" "${file}.bak"
+
+        # Replace "aaa" with "111" and "bbb" with "222"
+        sed -i 's/aaa/111/g; s/bbb/222/g' "$file"
+
+        # Log the changes to the report
+        echo "Modified: $file (Backup: ${file}.bak)" >> "$report_file"
+    done
+done
+
+# Print report location
+echo "Replacement complete. Report saved to $report_file."

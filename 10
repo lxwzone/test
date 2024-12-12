@@ -1,0 +1,23 @@
+#!/bin/bash
+
+# Define the base directory to search
+base_dir="/path/to/search"
+
+# Find all "active" directories and process them
+find "$base_dir" -type d -name "*active*" 2>/dev/null | while read dir; do
+    echo "Processing directory: $dir"
+
+    # Find all .bak files in the "active" directories
+    find "$dir" -type f -name "*.bak" 2>/dev/null | while read bak_file; do
+        # Get the original file name by removing the ".bak" extension
+        original_file="${bak_file%.bak}"
+
+        # Replace the original file with the .bak file
+        if [ -f "$original_file" ]; then
+            mv "$bak_file" "$original_file"
+            echo "Replaced: $original_file with $bak_file"
+        else
+            echo "Original file not found for: $bak_file"
+        fi
+    done
+done

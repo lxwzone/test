@@ -1,0 +1,78 @@
+Yes, you can connect to a SQL Server that only supports Windows NT Authentication (Windows Integrated Authentication) from a Linux server, but it requires some additional configuration because Linux does not natively support Windows Authentication. Below are the common methods to achieve this:
+
+1. Use Kerberos Authentication
+
+Kerberos can be configured on Linux to allow integrated authentication to SQL Server. Here’s how:
+
+Prerequisites:
+	•	The Linux server must be part of the same Active Directory domain as the SQL Server.
+	•	You need a valid Active Directory account with permissions to access the SQL Server.
+
+Steps:
+	1.	Install Required Tools:
+
+sudo apt install krb5-user libsasl2-modules-gssapi-mit
+
+Replace apt with your package manager (yum, dnf, etc.) as appropriate.
+
+	2.	Configure Kerberos:
+Edit the /etc/krb5.conf file to match your Active Directory configuration:
+
+[libdefaults]
+    default_realm = YOURDOMAIN.COM
+    dns_lookup_realm = false
+    dns_lookup_kdc = true
+
+[realms]
+    YOURDOMAIN.COM = {
+        kdc = your-domain-controller.yourdomain.com
+        admin_server = your-domain-controller.yourdomain.com
+    }
+
+[domain_realm]
+    .yourdomain.com = YOURDOMAIN.COM
+    yourdomain.com = YOURDOMAIN.COM
+
+
+	3.	Authenticate Using kinit:
+Obtain a Kerberos ticket:
+
+kinit your-username@YOURDOMAIN.COM
+
+Enter your Active Directory password when prompted.
+
+	4.	Connect Using sqlcmd:
+Install sqlcmd if you haven’t already, then connect using Kerberos:
+
+sqlcmd -S your-sql-server -E
+
+The -E option uses the Kerberos ticket for authentication.
+
+2. Use a Middleman Windows Machine
+
+If configuring Kerberos is not feasible, you can use a Windows machine as a proxy or middleman:
+
+Steps:
+	1.	Configure the Windows machine to connect to the SQL Server using Windows Authentication.
+	2.	Use a tool like Remote Desktop or SSH tunneling to forward connections from the Linux server through the Windows machine.
+
+3. ODBC with Windows Authentication
+
+You can use ODBC with Kerberos for authentication. Set up an ODBC driver on Linux that supports SQL Server (e.g., ODBC Driver 17 for SQL Server).
+
+Steps:
+	1.	Install the ODBC driver for SQL Server:
+
+sudo apt install msodbcsql17
+
+
+	2.	Configure the ODBC connection in /etc/odbc.ini and /etc/odbcinst.ini.
+	3.	Use isql or similar tools to connect.
+
+4. Ask for Mixed-Mode Authentication
+
+If possible, request the database administrator to enable Mixed Mode Authentication on the SQL Server. This would allow both Windows Authentication and SQL Server Authentication. You can then use SQL Server Authentication from Linux without additional setup.
+
+Summary:
+
+The most seamless and secure way is to configure Kerberos Authentication, but it requires domain configuration. If that’s not feasible, you may need a Windows middleman or to request a configuration change on the SQL Server.

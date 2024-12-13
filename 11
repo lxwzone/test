@@ -1,0 +1,33 @@
+The issue arises because in shell scripting, when you assign multiple options to a variable, they are treated as a single string. When you pass this variable to a command, the entire string is treated as a single argument, rather than separate options.
+
+To fix this, you need to use an array in your shell script to store multiple options. Here’s how you can do it:
+
+Solution: Use an Array for SSH_OPTS
+
+#!/bin/bash
+
+# Define the SSH options in an array
+SSH_OPTS=(-o IdentityFile=./rsa -o Port=2323)
+
+# Run sftp with the options
+sftp "${SSH_OPTS[@]}" abc@server.com
+
+Explanation:
+	1.	Array Definition: The SSH_OPTS variable is defined as an array where each option is a separate element.
+	2.	Pass Options to Command: Using "${SSH_OPTS[@]}" ensures each element in the array is passed as a separate argument to the sftp command.
+
+This approach works because Bash properly expands the array into separate arguments when passed to a command.
+
+Alternative: Using eval (Not Recommended)
+
+If you must use a plain string, you can use eval (though it is not recommended due to potential security risks):
+
+#!/bin/bash
+
+# Define SSH options as a string
+SSH_OPTS="-o IdentityFile=./rsa -o Port=2323"
+
+# Run the sftp command with eval
+eval "sftp $SSH_OPTS abc@server.com"
+
+However, this method is prone to security issues if the variable contains user input, so the array-based approach is safer and more robust.

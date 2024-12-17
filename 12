@@ -1,0 +1,75 @@
+import javax.net.ssl.*;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.net.URL;
+
+public class DisableHttpsVerification {
+    public static void main(String[] args) {
+        try {
+            // Disable SSL certificate verification
+            disableSslVerification();
+
+            // Example URL (HTTPS)
+            String httpsUrl = "https://self-signed.badssl.com/";
+
+            // Open connection
+            URL url = new URL(httpsUrl);
+            HttpsURLConnection connection = (HttpsURLConnection) url.openConnection();
+
+            // Optional: Set request method
+            connection.setRequestMethod("GET");
+
+            // Read and print response
+            int responseCode = connection.getResponseCode();
+            System.out.println("Response Code: " + responseCode);
+
+            BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+            String inputLine;
+            StringBuilder response = new StringBuilder();
+
+            while ((inputLine = in.readLine()) != null) {
+                response.append(inputLine);
+            }
+            in.close();
+
+            System.out.println("Response Body: \n" + response.toString());
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    // Method to disable SSL certificate verification
+    private static void disableSslVerification() {
+        try {
+            // Install a custom trust manager that does not validate certificate chains
+            TrustManager[] trustAllCertificates = new TrustManager[] {
+                new X509TrustManager() {
+                    public java.security.cert.X509Certificate[] getAcceptedIssuers() {
+                        return null;  // Not relevant
+                    }
+
+                    public void checkClientTrusted(java.security.cert.X509Certificate[] certs, String authType) {
+                        // Do nothing
+                    }
+
+                    public void checkServerTrusted(java.security.cert.X509Certificate[] certs, String authType) {
+                        // Do nothing
+                    }
+                }
+            };
+
+            // Set the SSL context to use the permissive trust manager
+            SSLContext sc = SSLContext.getInstance("SSL");
+            sc.init(null, trustAllCertificates, new java.security.SecureRandom());
+            HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory());
+
+            // Install a hostname verifier that does not verify hostnames
+            HostnameVerifier allHostsValid = (hostname, session) -> true;
+            HttpsURLConnection.setDefaultHostnameVerifier(allHostsValid);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+}

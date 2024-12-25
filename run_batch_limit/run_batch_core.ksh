@@ -1,8 +1,7 @@
 #!/bin/bash
 
 
-RANDOM_SLEEP_TIME=100
-#((RANDOM % 5 + 1))
+RANDOM_SLEEP_TIME=$((RANDOM % 5 + 1))
 
 echo "Executing run_batch_core.ksh with arguments: $@ for $RANDOM_SLEEP_TIME seconds "
 

@@ -45,11 +45,13 @@ while true; do
     echo "Too many concurrent executions ($running). Waiting..."
     sleep 1
 done
-release_lock
 
 # Run the underlying script as a separate process and capture its PID
 nohup "$SCRIPT_TO_RUN" "$@" > /dev/null 2>&1 &
 UNDERLYING_PID=$!
+
+release_lock
+
 
 # Wait for the underlying script to complete
 wait "$UNDERLYING_PID"

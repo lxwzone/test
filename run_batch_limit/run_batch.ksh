@@ -8,7 +8,7 @@ LOG_FILE_BASE="/opt/batch/logs"
 COMMANDS_TO_MONITOR=("run_batch_core.ksh")
 
 # Maximum number of allowed concurrent executions
-MAX_CONCURRENT=3
+MAX_CONCURRENT=30dashboard
 
 # Lock file location
 LOCK_FILE="/opt/batch/tmp/run_batch_execution.lock"

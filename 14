@@ -1,0 +1,35 @@
+#!/bin/bash
+
+# Get the directory of the current script
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_TO_RUN="$SCRIPT_DIR/script2.sh"
+
+# List of commands to monitor (add more commands as needed)
+COMMANDS_TO_MONITOR=("script2.sh" "another_script.sh")
+
+# Maximum number of allowed concurrent executions
+MAX_CONCURRENT=3
+
+# Function to count running instances of the monitored commands
+count_running_instances() {
+    local total_count=0
+    for cmd in "${COMMANDS_TO_MONITOR[@]}"; do
+        # Count processes for each command
+        count=$(ps -ef | grep "$cmd" | grep -v grep | wc -l)
+        total_count=$((total_count + count))
+    done
+    echo "$total_count"
+}
+
+# Wait for the number of concurrent executions to be below the limit
+while true; do
+    running=$(count_running_instances)
+    if [ "$running" -lt "$MAX_CONCURRENT" ]; then
+        break
+    fi
+    echo "Too many concurrent executions ($running). Waiting..."
+    sleep 1
+done
+
+# Execute the underlying script
+"$SCRIPT_TO_RUN" "$@"

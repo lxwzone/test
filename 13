@@ -1,0 +1,10 @@
+#!/bin/bash
+
+# Get the directory of the current script
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Export a custom environment variable
+export MY_VAR="Hello from script1"
+
+# Call script2 with the full path and pass all arguments
+"$SCRIPT_DIR/script2.sh" "$@"

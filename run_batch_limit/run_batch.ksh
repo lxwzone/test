@@ -1,17 +1,17 @@
 #!/bin/bash
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SCRIPT_TO_RUN="$SCRIPT_DIR/run_batch_core.ksh"
+SCRIPT_NAME="run_batch_core.ksh"
+SCRIPT_TO_RUN="$SCRIPT_DIR/$SCRIPT_NAME"
 LOG_FILE_BASE="/opt/batch/logs"
-
-# List of commands to monitor
-COMMANDS_TO_MONITOR=("run_batch_core.ksh")
-
-# Maximum number of allowed concurrent executions
-MAX_CONCURRENT=30dashboard
-
 # Lock file location
 LOCK_FILE="/opt/batch/tmp/run_batch_execution.lock"
+
+# List of commands to monitor
+COMMANDS_TO_MONITOR=("$SCRIPT_NAME")
+
+# Maximum number of allowed concurrent executions
+MAX_CONCURRENT=30
 
 # Function to count running instances of the monitored commands
 count_running_instances() {
@@ -47,7 +47,7 @@ while true; do
 done
 
 # Run the underlying script as a separate process and capture its PID
-LOG_FILE="$LOG_FILE_BASE/run_batch_$(date +'%Y%m%d_%H%M%S_%N').log"
+LOG_FILE="$LOG_FILE_BASE/${SCRIPT_NAME}_$(date +'%Y%m%d_%H%M%S_%N').log"
 nohup "$SCRIPT_TO_RUN" "$@"  > "$LOG_FILE" 2>&1 &
 UNDERLYING_PID=$!
 

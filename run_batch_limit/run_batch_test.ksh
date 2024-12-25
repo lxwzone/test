@@ -13,6 +13,8 @@ for i in {1..200}; do
     ./run_batch.ksh arg "$i" &
 done
 
+echo "DONE launching commands!!!!!!!!!!!!!"
+
 #Test 1 - trigger 200 executions at the same time, now check with 'ps -ef | grep run_batch_core.ksh' to make sure the number of executions is less than the limit
 #Test 2 - log fils get cleaned up regularly 
 #Test 3 - if running run_batch.ksh , then kill it this parent process, the child process gets killed as well

@@ -1,0 +1,12 @@
+# Acquire lock
+acquire_lock() {
+    while ! ln -s "$LOCK_FILE" "$LOCK_FILE.lock" 2>/dev/null; do
+        print "Another instance is managing the lock. Waiting..."
+        sleep 1
+    done
+}
+
+# Release lock
+release_lock() {
+    rm -f "$LOCK_FILE.lock"
+}

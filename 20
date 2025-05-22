@@ -1,0 +1,13 @@
+ps -eo pid,etime,cmd | grep 'abcdef' | grep -v grep | awk '
+function time_in_minutes(t,   d,h,m,s) {
+    if (match(t, /([0-9]+)-([0-9]+):([0-9]+)/, a)) { d=a[1]; h=a[2]; m=a[3] }
+    else if (match(t, /([0-9]+):([0-9]+)/, a)) { d=0; h=a[1]; m=a[2] }
+    else if (match(t, /([0-9]+)-/, a)) { d=a[1]; h=0; m=0 }
+    else { next }
+    return d*1440 + h*60 + m
+}
+{
+    if (time_in_minutes($2) > 1440) {
+        print $1
+    }
+}' | xargs -r kill -9

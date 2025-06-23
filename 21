@@ -1,0 +1,64 @@
+import io.lettuce.core.RedisClient;
+import io.lettuce.core.RedisURI;
+import io.lettuce.core.api.StatefulRedisConnection;
+import io.lettuce.core.api.sync.RedisCommands;
+import io.lettuce.core.resource.ClientResources;
+import io.lettuce.core.resource.DefaultClientResources;
+import javax.net.ssl.SSLContext;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.security.KeyStore;
+import java.security.cert.CertificateFactory;
+import java.security.cert.X509Certificate;
+import javax.net.ssl.TrustManagerFactory;
+
+public class RedisTlsConnection {
+
+    public static void main(String[] args) throws Exception {
+
+        // Load the server CA cert
+        String certPath = "/path/to/ca.pem"; // Downloaded from Google Cloud
+        CertificateFactory certFactory = CertificateFactory.getInstance("X.509");
+        X509Certificate caCert = (X509Certificate) certFactory.generateCertificate(
+                Files.newInputStream(Paths.get(certPath)));
+
+        // Trust manager with the CA
+        KeyStore trustStore = KeyStore.getInstance(KeyStore.getDefaultType());
+        trustStore.load(null);
+        trustStore.setCertificateEntry("ca-cert", caCert);
+        TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+        tmf.init(trustStore);
+
+        // Create SSL context
+        SSLContext sslContext = SSLContext.getInstance("TLS");
+        sslContext.init(null, tmf.getTrustManagers(), null);
+
+        // Redis connection URI with TLS and password
+        RedisURI redisUri = RedisURI.builder()
+                .withHost("your-redis-host")        // e.g., 10.0.0.5
+                .withPort(6379)
+                .withPassword("your-redis-password".toCharArray())
+                .withSsl(true)
+                .build();
+
+        // Setup client with custom SSL
+        ClientResources clientResources = DefaultClientResources.builder().build();
+        RedisClient redisClient = RedisClient.create(clientResources, redisUri);
+        redisClient.setOptions(io.lettuce.core.ClientOptions.builder()
+                .sslOptions(io.lettuce.core.SslOptions.builder()
+                        .jdkSslProvider()
+                        .sslContext(sslContext)
+                        .build())
+                .build());
+
+        // Connect and use Redis
+        StatefulRedisConnection<String, String> connection = redisClient.connect();
+        RedisCommands<String, String> sync = connection.sync();
+
+        sync.set("hello", "world");
+        System.out.println("Value: " + sync.get("hello"));
+
+        connection.close();
+        redisClient.shutdown();
+    }
+}

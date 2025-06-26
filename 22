@@ -1,0 +1,21 @@
+Layer
+Component Type
+Tools/Frameworks (Java-centric)
+1
+Unit Testing
+JUnit 5 + Mockito
+2
+Microservices / API Testing
+RestAssured + TestContainers
+3
+Shell/Bash Batch Job Testing
+JUnit 5 + EmbeddedShellRunner (or integration via mocks/side effects)
+4
+GCP Integration Testing
+TestContainers (with GCP emulators), or real GCP with Service Accounts
+5
+End-to-End (E2E)
+Cucumber + JUnit/TestNG (optional), or script-based validation
+6
+CI & Reporting
+Allure / JUnit XML + GitHub Actions / Cloud Build

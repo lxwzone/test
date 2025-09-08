@@ -1,0 +1,40 @@
+@Mojo(name = "fetch-artifact", defaultPhase = LifecyclePhase.GENERATE_RESOURCES)
+public class FetchArtifactMojo extends AbstractMojo {
+
+    @Parameter(defaultValue = "${repositorySystemSession}", readonly = true)
+    private RepositorySystemSession repoSession;
+
+    @Component
+    private RepositorySystem repoSystem;
+
+    @Parameter(defaultValue = "${project.remoteProjectRepositories}", readonly = true)
+    private List<RemoteRepository> remoteRepos;
+
+    public void execute() throws MojoExecutionException {
+        Artifact artifact = new DefaultArtifact("com.example:my-artifact:1.0.0:jar");
+
+        ArtifactRequest request = new ArtifactRequest();
+        request.setArtifact(artifact);
+        request.setRepositories(remoteRepos);
+
+        try {
+            ArtifactResult result = repoSystem.resolveArtifact(repoSession, request);
+            File file = result.getArtifact().getFile();
+            getLog().info("Artifact downloaded: " + file.getAbsolutePath());
+
+            // You can now read files inside the JAR
+            try (JarFile jarFile = new JarFile(file)) {
+                JarEntry entry = jarFile.getJarEntry("META-INF/MANIFEST.MF");
+                if (entry != null) {
+                    try (InputStream in = jarFile.getInputStream(entry)) {
+                        String text = new String(in.readAllBytes(), StandardCharsets.UTF_8);
+                        getLog().info("Manifest:\n" + text);
+                    }
+                }
+            }
+
+        } catch (ArtifactResolutionException | IOException e) {
+            throw new MojoExecutionException("Failed to fetch artifact", e);
+        }
+    }
+}

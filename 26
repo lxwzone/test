@@ -1,0 +1,69 @@
+package com.example;
+
+import org.apache.maven.artifact.Artifact;
+import org.apache.maven.plugins.annotations.*;
+import org.apache.maven.plugin.*;
+import org.eclipse.aether.*;
+import org.eclipse.aether.artifact.DefaultArtifact;
+import org.eclipse.aether.repository.RemoteRepository;
+import org.eclipse.aether.resolution.*;
+
+import javax.inject.Inject;
+import java.io.*;
+import java.nio.charset.StandardCharsets;
+import java.util.*;
+import java.util.jar.*;
+
+@Mojo(name = "fetch-artifact", defaultPhase = LifecyclePhase.GENERATE_RESOURCES)
+public class FetchArtifactMojo extends AbstractMojo {
+
+    @Parameter(property = "fetch.groupId", required = true)
+    private String groupId;
+
+    @Parameter(property = "fetch.artifactId", required = true)
+    private String artifactId;
+
+    @Parameter(property = "fetch.version", required = true)
+    private String version;
+
+    @Parameter(property = "fetch.packaging", defaultValue = "jar")
+    private String packaging;
+
+    @Inject
+    private RepositorySystem repoSystem;
+
+    @Parameter(defaultValue = "${repositorySystemSession}", readonly = true)
+    private RepositorySystemSession repoSession;
+
+    @Parameter(defaultValue = "${project.remoteProjectRepositories}", readonly = true)
+    private List<RemoteRepository> remoteRepos;
+
+    public void execute() throws MojoExecutionException {
+        try {
+            org.eclipse.aether.artifact.Artifact artifact =
+                new DefaultArtifact(groupId, artifactId, packaging, version);
+
+            ArtifactRequest request = new ArtifactRequest();
+            request.setArtifact(artifact);
+            request.setRepositories(remoteRepos);
+
+            ArtifactResult result = repoSystem.resolveArtifact(repoSession, request);
+
+            File file = result.getArtifact().getFile();
+            getLog().info("✅ Downloaded: " + file.getAbsolutePath());
+
+            // Example: read META-INF/MANIFEST.MF
+            try (JarFile jarFile = new JarFile(file)) {
+                JarEntry entry = jarFile.getJarEntry("META-INF/MANIFEST.MF");
+                if (entry != null) {
+                    try (InputStream in = jarFile.getInputStream(entry)) {
+                        String text = new String(in.readAllBytes(), StandardCharsets.UTF_8);
+                        getLog().info("📄 Manifest contents:\n" + text);
+                    }
+                }
+            }
+        } catch (ArtifactResolutionException | IOException e) {
+            throw new MojoExecutionException("Failed to fetch artifact", e);
+        }
+    }
+}

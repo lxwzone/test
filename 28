@@ -1,0 +1,34 @@
+import org.apache.maven.plugin.testing.AbstractMojoTestCase;
+import org.apache.maven.plugin.Mojo;
+
+import java.io.File;
+
+class MyMojoTest extends AbstractMojoTestCase {
+
+    @Override
+    protected void setUp() throws Exception {
+        super.setUp();
+    }
+
+    @org.junit.jupiter.api.Test
+    void testMyMojo() throws Exception {
+        // Load test POM
+        File pom = new File("src/test/resources/project-to-test/pom.xml");
+        assertNotNull(pom);
+        assertTrue(pom.exists());
+
+        // Lookup and configure Mojo
+        Mojo mojo = lookupMojo("mygoal", pom);
+        assertNotNull(mojo);
+
+        // Set configuration parameters if needed
+        setVariableValueToObject(mojo, "myParam", "testValue");
+
+        // Execute
+        mojo.execute();
+
+        // Verify effects (e.g., output file created)
+        File output = new File("target/generated-test-output.txt");
+        assertTrue(output.exists());
+    }
+}

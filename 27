@@ -1,0 +1,45 @@
+import org.apache.hc.client5.http.classic.CloseableHttpClient;
+import org.apache.hc.client5.http.classic.methods.HttpGet;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
+import org.apache.hc.client5.http.impl.classic.HttpClients;
+import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManagerBuilder;
+import org.apache.hc.client5.http.io.HttpClientResponseHandler;
+import org.apache.hc.core5.http.io.entity.EntityUtils;
+import org.apache.hc.core5.ssl.SSLContextBuilder;
+import org.apache.hc.core5.ssl.TrustAllStrategy;
+import org.apache.hc.core5.ssl.NoopHostnameVerifier;
+import org.apache.hc.core5.ssl.SSLConnectionSocketFactory;
+
+import javax.net.ssl.SSLContext;
+
+public class HttpClientSkipSSL {
+    public static void main(String[] args) throws Exception {
+
+        // Build an SSLContext that trusts *all* certificates
+        SSLContext sslContext = SSLContextBuilder.create()
+                .loadTrustMaterial(new TrustAllStrategy())
+                .build();
+
+        // Create a connection manager with the custom SSL context and no hostname verification
+        var connManager = PoolingHttpClientConnectionManagerBuilder.create()
+                .setSSLSocketFactory(
+                        new SSLConnectionSocketFactory(sslContext, NoopHostnameVerifier.INSTANCE)
+                )
+                .build();
+
+        // Build the HttpClient
+        try (CloseableHttpClient httpclient = HttpClients.custom()
+                .setConnectionManager(connManager)
+                .build()) {
+
+            HttpGet httpget = new HttpGet("https://self-signed.badssl.com/");
+
+            System.out.println("Executing request " + httpget.getMethod() + " " + httpget.getUri());
+
+            try (CloseableHttpResponse response = httpclient.execute(httpget)) {
+                System.out.println(response.getCode() + " " + response.getReasonPhrase());
+                System.out.println(EntityUtils.toString(response.getEntity()));
+            }
+        }
+    }
+}
